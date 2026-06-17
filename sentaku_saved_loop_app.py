@@ -1,3 +1,13 @@
+ダークモードの背景に対して、選択肢の指示文字やラジオボタンの文字がグレーで見えづらくなっていた点、大変失礼いたしました！
+
+Streamlitの標準仕様（仕様上のフォントサイズやグレーアウト）に負けないよう、CSSをさらに強化して、すべての文字（選択肢、問題文、入力欄、ボタンのテキストなど）を強制的に「ハッキリとした白（またはネオンカラー）」かつ「少し大きめのフォント」に変更しました。
+
+これにより、暗い背景でも文字が浮かび上がるように見やすくなります。
+
+最新の修正コードを sentaku_saved_loop_app.py に丸ごと上書き保存してください。
+
+📝 文字視認性大幅強化版：メインプログラム (sentaku_saved_loop_app.py)
+Python
 import streamlit as st
 import pandas as pd
 import random
@@ -13,13 +23,13 @@ MAX_LIFE = 3     # 最大ライフ数
 
 st.set_page_config(page_title="CHALLENGER - 究極の選択クイズ", layout="centered")
 
-# --- 🎮 圧倒的ゲームグラフィックを実現するカスタムCSS ---
+# --- 🎮 圧倒的ゲームグラフィック ＆ 超高視認性カスタムCSS ---
 st.markdown("""
 <style>
     /* 全体の背景を黒（ゲーム風）に */
     .stApp {
         background-color: #0d0f12;
-        color: #e2e8f0;
+        color: #ffffff !important; /* すべての基本文字を真っ白に強制 */
     }
     
     /* タイトルロゴデザイン */
@@ -41,17 +51,42 @@ st.markdown("""
         border-radius: 12px;
         padding: 15px;
         margin-bottom: 25px;
+        font-size: 18px !important;
     }
     
-    /* ライフ（ハート）の点滅風演出 */
+    /* ライフ（ハート） */
     .life-heart {
         color: #ff2a6d;
         font-size: 24px;
         text-shadow: 0 0 8px #ff2a6d;
     }
-    .life-empty {
-        color: #475569;
-        font-size: 24px;
+    
+    /* 問題文エリアの強調 */
+    .stAlert p {
+        font-size: 22px !important;
+        font-weight: bold !important;
+        color: #ffffff !important;
+    }
+    
+    /* 🚨 【超重要】選択肢（ラジオボタン）の文字を大きく・真っ白に強制上書き 🚨 */
+    div[data-testid="stRadio"] label {
+        font-size: 20px !important;      /* 文字を大きく */
+        font-weight: 600 !important;     /* 文字を太く */
+        color: #ffffff !important;        /* 文字を真っ白に */
+        opacity: 1 !important;           /* 半透明（グレー化）を禁止 */
+    }
+    
+    /* 選択肢の指示文（「選択肢をロックオンせよ:」など）の文字 */
+    div[data-testid="stRadio"] p {
+        font-size: 18px !important;
+        font-weight: bold !important;
+        color: #38bdf8 !important;        /* 指示文はネオンブルーで見やすく */
+    }
+
+    /* ログイン時の入力欄のラベル文字 */
+    div[data-testid="stTextInput"] label p {
+        font-size: 18px !important;
+        color: #ffffff !important;
     }
     
     /* 正解・不正解・タイムアップの特大演出ボックス */
@@ -61,30 +96,30 @@ st.markdown("""
         text-align: center;
         margin: 20px 0;
         font-weight: bold;
-        animation: pulse 1s infinite alternate;
+        font-size: 20px !important;
     }
     .correct-style {
-        background: rgba(16, 185, 129, 0.15);
+        background: rgba(16, 185, 129, 0.25);
         border: 3px solid #10b981;
-        color: #10b981;
+        color: #ffffff !important;
         box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
     }
     .wrong-style {
-        background: rgba(239, 68, 68, 0.15);
+        background: rgba(239, 68, 68, 0.25);
         border: 3px solid #ef4444;
-        color: #ef4444;
+        color: #ffffff !important;
         box-shadow: 0 0 25px rgba(239, 68, 68, 0.4);
     }
     .timeup-style {
-        background: rgba(245, 158, 11, 0.15);
+        background: rgba(245, 158, 11, 0.25);
         border: 3px solid #f59e0b;
-        color: #f59e0b;
+        color: #ffffff !important;
         box-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
     }
     .gameover-style {
-        background: rgba(0, 0, 0, 0.8);
+        background: rgba(0, 0, 0, 0.9);
         border: 3px solid #ff0055;
-        color: #ff0055;
+        color: #ff0055 !important;
         box-shadow: 0 0 30px rgba(255, 0, 85, 0.6);
     }
     
@@ -160,7 +195,6 @@ def next_question():
     st.session_state.answered = False
     st.session_state.judge_status = ""
     
-    # ゲームオーバー、または全クリア時は問題を抽出しない
     if st.session_state.life <= 0:
         return
         
@@ -230,19 +264,18 @@ if not st.session_state.quiz_started:
 
 # 7. ゲーム本編
 else:
-    # ── 📊 ゲームUI：ステータスバー ──
     hearts = "❤️" * st.session_state.life + "🖤" * (MAX_LIFE - st.session_state.life)
     combo_flash = f"🔥 {st.session_state.current_combo} COMBO!" if st.session_state.current_combo > 0 else "ーー"
     
     st.markdown(f"""
     <div class="status-container">
-        <table style="width:100%; border:none; font-family:monospace; color:#38bdf8;">
+        <table style="width:100%; border:none; font-family:monospace; color:#38bdf8; font-size:18px;">
             <tr>
-                <td>👤 PLAYER: <b>{st.session_state.user_name}</b> ({st.session_state.loop_count}周目)</td>
+                <td>👤 PLAYER: <b style="color:#ffffff;">{st.session_state.user_name}</b> ({st.session_state.loop_count}周目)</td>
                 <td style="text-align:right;">❤️ HP: <span class="life-heart">{hearts}</span></td>
             </tr>
             <tr>
-                <td>🎯 SCORE: <b>{st.session_state.score}</b> P</td>
+                <td>🎯 SCORE: <b style="color:#ffffff;">{st.session_state.score}</b> P</td>
                 <td style="text-align:right; color:#ff9f43; font-weight:bold;">{combo_flash}</td>
             </tr>
         </table>
@@ -268,7 +301,7 @@ else:
             
     # ── ⚔️ クイズ解答中 ──
     elif q:
-        st.subheader(f"STAGE {cleared_questions + 1} / {total_questions}")
+        st.markdown(f"<h3 style='color:#38bdf8;'>STAGE {cleared_questions + 1} / {total_questions}</h3>", unsafe_allow_html=True)
         st.info(q['question'])
         
         # タイマー部
@@ -280,24 +313,26 @@ else:
                 if remaining <= 0:
                     st.session_state.answered = True
                     st.session_state.judge_status = "time_up"
-                    st.session_state.life -= 1  # タイムアップでダメージ
-                    st.session_state.current_combo = 0  # コンボストップ
+                    st.session_state.life -= 1
+                    st.session_state.current_combo = 0
                     st.session_state.history_ids.append(q['question_id'])
                     save_user_progress(st.session_state.user_name, st.session_state.history_ids, st.session_state.loop_count, st.session_state.score, st.session_state.life, st.session_state.current_combo, st.session_state.max_combo)
                     st.rerun()
                 else:
-                    st.markdown(f"⏳ 残り時間: <b style='color:#ff0055;'>{remaining}秒</b>", unsafe_allow_html=True)
+                    st.markdown(f"⏳ 残り時間: <b style='color:#ff1e56; font-size:20px;'>{remaining}秒</b>", unsafe_allow_html=True)
         show_timer_and_check()
         
-        user_choice = st.radio("選択肢をロックオンせよ:", q['choices'], index=None, key=f"radio_{q['question_id']}", disabled=st.session_state.answered)
+        # ラジオボタン表示
+        is_disabled = st.session_state.answered
+        user_choice = st.radio("選択肢をロックオンせよ:", q['choices'], index=None, key=f"radio_{q['question_id']}", disabled=is_disabled)
         
-        # 演出表示
+        # 演出表示（中の文字も白に強制補正）
         if st.session_state.judge_status == "correct":
-            st.markdown(f'<div class="result-box correct-style"><span class="huge-icon">✨ ⭕ CRITICAL HIT! ✨</span>正解！コンボ継続中！</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-box correct-style"><span class="huge-icon">✨ ⭕ CRITICAL HIT! ✨</span>正解は 「{q["correct"]}」 です！コンボ継続中！</div>', unsafe_allow_html=True)
         elif st.session_state.judge_status == "wrong":
-            st.markdown(f'<div class="result-box wrong-style"><span class="huge-icon">💥 ❌ DAMAGE! 💥</span>不正解！ 正解は「{q["correct"]}」だった！</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-box wrong-style"><span class="huge-icon">💥 ❌ DAMAGE! 💥</span>不正解！ 正解は 「{q["correct"]}」 だった！</div>', unsafe_allow_html=True)
         elif st.session_state.judge_status == "time_up":
-            st.markdown(f'<div class="result-box timeup-style"><span class="huge-icon">⌛ ⏰ TIME UP! ⏳</span>時間切れ！ライフが1減少した。</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-box timeup-style"><span class="huge-icon">⌛ ⏰ TIME UP! ⏳</span>時間切れ！ 正解は 「{q["correct"]}」 だった！ライフが1減少した。</div>', unsafe_allow_html=True)
 
         if not st.session_state.answered:
             if st.button("回答を送信（LOCK ON）"):
@@ -309,13 +344,12 @@ else:
                         st.session_state.judge_status = "correct"
                         st.session_state.score += 1
                         st.session_state.current_combo += 1
-                        # 最高コンボの更新
                         if st.session_state.current_combo > st.session_state.max_combo:
                             st.session_state.max_combo = st.session_state.current_combo
                     else:
                         st.session_state.judge_status = "wrong"
-                        st.session_state.life -= 1  # 不正解でダメージ
-                        st.session_state.current_combo = 0  # コンボリセット
+                        st.session_state.life -= 1
+                        st.session_state.current_combo = 0
                         
                     st.session_state.history_ids.append(q['question_id'])
                     save_user_progress(st.session_state.user_name, st.session_state.history_ids, st.session_state.loop_count, st.session_state.score, st.session_state.life, st.session_state.current_combo, st.session_state.max_combo)
@@ -335,10 +369,10 @@ else:
         st.markdown(f"""
         <div style="text-align:center;">
             <h2 style="color:#00ffcc;">🎉 MISSION CLEAR 🎉</h2>
-            <p>全ステージを突破しました！あなたの最終ランクを発表します。</p>
+            <p style="color:#ffffff; font-size:18px;">全ステージを突破しました！あなたの最終ランクを発表します。</p>
             <div class="rank-text">{rank.split(":")[0]}</div>
-            <h3>称号: {rank.split(":")[1]}</h3>
-            <p style="color:#a855f7;">👑 最高コンボ記録: <b>{st.session_state.max_combo}</b> 連続正解</p>
+            <h3 style="color:#ffffff;">称号: {rank.split(":")[1]}</h3>
+            <p style="color:#ff00cc; font-size:20px; font-weight:bold;">👑 最高コンボ記録: {st.session_state.max_combo} 連続正解</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -347,7 +381,7 @@ else:
         if st.button("🔄 次の周回（難関）へ進む"):
             st.session_state.history_ids = []
             st.session_state.score = 0
-            st.session_state.life = MAX_LIFE  # 次の周でライフ全回復
+            st.session_state.life = MAX_LIFE
             st.session_state.current_combo = 0
             st.session_state.loop_count += 1
             save_user_progress(st.session_state.user_name, st.session_state.history_ids, st.session_state.loop_count, st.session_state.score, st.session_state.life, st.session_state.current_combo, st.session_state.max_combo)
