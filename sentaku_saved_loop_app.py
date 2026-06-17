@@ -1,3 +1,13 @@
+ボタンの背景色が白で、文字も白になってしまっているため、文字が消えて見えなくなっていたのですね。大変失礼いたしました！
+
+Streamlitの標準ボタンが持つスタイル（白背景）に対して、先ほど追加した「すべての文字を真っ白にする」という強力なCSSが干渉してしまっていました。
+
+これを解決するため、すべてのボタン（GAME START、回答送信、次のステージへ）のデザインを、ゲームにふさわしい「漆黒の背景に、ネオンブルー/グリーンの枠線と文字が光るサイバーパンク風ボタン」に個別にカスタマイズしました。マウスを乗せるとピカッと光る演出も入れています。
+
+最新の修正コードを sentaku_saved_loop_app.py に丸ごと上書き保存してください。
+
+📝 ボタン視認性・デザイン強化版：メインプログラム (sentaku_saved_loop_app.py)
+Python
 import streamlit as st
 import pandas as pd
 import random
@@ -13,7 +23,7 @@ MAX_LIFE = 3     # 最大ライフ数
 
 st.set_page_config(page_title="CHALLENGER - 究極の選択クイズ", layout="centered")
 
-# --- 🎮 圧倒的ゲームグラフィック ＆ 超高視認性カスタムCSS ---
+# --- 🎮 圧倒的ゲームグラフィック ＆ ボタンデザイン超強化CSS ---
 st.markdown("""
 <style>
     /* 全体の背景を黒（ゲーム風）に */
@@ -58,25 +68,47 @@ st.markdown("""
         color: #ffffff !important;
     }
     
-    /* 🚨 【超重要】選択肢（ラジオボタン）の文字を大きく・真っ白に強制上書き 🚨 */
+    /* 選択肢（ラジオボタン）の文字を大きく・真っ白に強制上書き */
     div[data-testid="stRadio"] label {
-        font-size: 20px !important;      /* 文字を大きく */
-        font-weight: 600 !important;     /* 文字を太く */
-        color: #ffffff !important;        /* 文字を真っ白に */
-        opacity: 1 !important;           /* 半透明（グレー化）を禁止 */
+        font-size: 20px !important;
+        font-weight: 600 !important;
+        color: #ffffff !important;
+        opacity: 1 !important;
     }
     
-    /* 選択肢の指示文（「選択肢をロックオンせよ:」など）の文字 */
+    /* 選択肢の指示文 */
     div[data-testid="stRadio"] p {
         font-size: 18px !important;
         font-weight: bold !important;
-        color: #38bdf8 !important;        /* 指示文はネオンブルーで見やすく */
+        color: #38bdf8 !important;
     }
 
     /* ログイン時の入力欄のラベル文字 */
     div[data-testid="stTextInput"] label p {
         font-size: 18px !important;
         color: #ffffff !important;
+    }
+    
+    /* 🚨 【超重要】ボタンのグラフィックを完全ゲーム風に強制上書き 🚨 */
+    div.stButton > button {
+        background-color: #11141a !important;   /* ボタンの背景を漆黒に */
+        color: #38bdf8 !important;              /* 文字を明るいネオンブルーに */
+        border: 2px solid #38bdf8 !important;   /* 枠線をネオンブルーに */
+        border-radius: 8px !important;
+        font-size: 20px !important;             /* 文字を大きく */
+        font-weight: bold !important;
+        padding: 10px 24px !important;
+        width: 100% !important;                 /* 押しやすいように横いっぱいに広げる */
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.2) !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    /* ボタンにマウスを乗せたとき（またはスマホでタップしたとき）の演出 */
+    div.stButton > button:hover {
+        background-color: #38bdf8 !important;   /* 背景がネオンブルーに */
+        color: #11141a !important;              /* 文字が漆黒に反転 */
+        box-shadow: 0 0 20px #38bdf8 !important; /* ボタン全体が光る */
+        border: 2px solid #38bdf8 !important;
     }
     
     /* 正解・不正解・タイムアップの特大演出ボックス */
@@ -105,12 +137,6 @@ st.markdown("""
         border: 3px solid #f59e0b;
         color: #ffffff !important;
         box-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
-    }
-    .gameover-style {
-        background: rgba(0, 0, 0, 0.9);
-        border: 3px solid #ff0055;
-        color: #ff0055 !important;
-        box-shadow: 0 0 30px rgba(255, 0, 85, 0.6);
     }
     
     /* 特大アイコン */
@@ -312,11 +338,9 @@ else:
                     st.markdown(f"⏳ 残り時間: <b style='color:#ff1e56; font-size:20px;'>{remaining}秒</b>", unsafe_allow_html=True)
         show_timer_and_check()
         
-        # ラジオボタン表示
-        is_disabled = st.session_state.answered
-        user_choice = st.radio("選択肢をロックオンせよ:", q['choices'], index=None, key=f"radio_{q['question_id']}", disabled=is_disabled)
+        user_choice = st.radio("選択肢をロックオンせよ:", q['choices'], index=None, key=f"radio_{q['question_id']}", disabled=st.session_state.answered)
         
-        # 演出表示（中の文字も白に強制補正）
+        # 演出表示
         if st.session_state.judge_status == "correct":
             st.markdown(f'<div class="result-box correct-style"><span class="huge-icon">✨ ⭕ CRITICAL HIT! ✨</span>正解は 「{q["correct"]}」 です！コンボ継続中！</div>', unsafe_allow_html=True)
         elif st.session_state.judge_status == "wrong":
