@@ -92,8 +92,8 @@ if "quiz_started" not in st.session_state: st.session_state.quiz_started = False
 if "answered" not in st.session_state: st.session_state.answered = False
 if "loop_count" not in st.session_state: st.session_state.loop_count = 1
 if "score" not in st.session_state: st.session_state.score = 0
-if "start_time" not in st.session_state: st.session_state.start_time = 0
-if "judge_status" not in st.session_state: st.session_state.judge_status = "" # 正誤判定状態
+if "start_time" not in st.session_state: st.session_state.start_time = 0.0
+if "judge_status" not in st.session_state: st.session_state.judge_status = "" 
 
 # 4. 次の問題をセットする関数
 def next_question():
@@ -115,7 +115,6 @@ def next_question():
         "choices": choices,
         "correct": selected['correct']
     }
-    # 出題した瞬間の時間を記録
     st.session_state.start_time = time.time()
 
 # --- 画面表示 ---
@@ -167,38 +166,38 @@ else:
         st.subheader(f"問題")
         st.write(q['question'])
         
-        # --- ⏳ タイマー処理の追加 ---
-        timer_placeholder = st.empty()
+        # --- ⏳ タイマー処理エリア（st.fragmentを使って干渉を防ぐ） ---
+        @st.fragment(run_every=1.0)
+        def show_timer_and_check():
+            if not st.session_state.answered and st.session_state.judge_status == "":
+                elapsed = time.time() - st.session_state.start_time
+                remaining = int(TIME_LIMIT - elapsed)
+                if remaining <= 0:
+                    st.session_state.answered = True
+                    st.session_state.judge_status = "time_up"
+                    st.session_state.history_ids.append(q['question_id'])
+                    save_user_progress(st.session_state.user_name, st.session_state.history_ids, st.session_state.loop_count, st.session_state.score)
+                    st.rerun()
+                else:
+                    st.markdown(f"⏳ 残り時間: **{remaining}秒**")
+
+        show_timer_and_check()
         
-        # 未回答、かつタイムアップしていない場合のみカウントダウンを回す
-        if not st.session_state.answered and st.session_state.judge_status == "":
-            elapsed = time.time() - st.session_state.start_time
-            remaining = int(TIME_LIMIT - elapsed)
-            
-            if remaining <= 0:
-                # 10秒が過ぎたらタイムアップ処理
-                st.session_state.answered = True
-                st.session_state.judge_status = "time_up"
-                st.session_state.history_ids.append(q['question_id'])
-                save_user_progress(st.session_state.user_name, st.session_state.history_ids, st.session_state.loop_count, st.session_state.score)
-                st.rerun()
-            else:
-                # 画面上の残り秒数表示を更新
-                timer_placeholder.markdown(f"⏳ 残り時間: **{remaining}秒**")
-                # 少し待って即リロードすることで、リアルタイムに1秒ずつカウントを減らす
-                time.sleep(1)
-                st.rerun()
-        
-        # ラジオボタンでの選択肢表示
-        # すでに結果が出ている（送信済 or タイムアップ）なら無効化(disabled)にする
+        # 選択肢の表示
         is_disabled = st.session_state.answered
-        user_choice = st.radio("選択肢から選んでください:", q['choices'], index=None, key=f"radio_{q['question_id']}", disabled=is_disabled)
+        user_choice = st.radio(
+            "選択肢から選んでください:", 
+            q['choices'], 
+            index=None, 
+            key=f"radio_{q['question_id']}", 
+            disabled=is_disabled
+        )
         
         # --- 🎨 視覚的な正誤判定エリア ---
         if st.session_state.judge_status == "correct":
             st.markdown(f'<div class="correct-box"><span class="big-icon">⭕ 正解！</span>正解は「{q["correct"]}」です。素晴らしい！</div>', unsafe_allow_html=True)
         elif st.session_state.judge_status == "wrong":
-            st.markdown(f'<div class="wrong-box"><span class="big-icon">❌ 不正解...</span>あなたの回答:「{user_choice}」<br>正解は「{q["correct"]}」でした。</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="wrong-box"><span class="big-icon">❌ 不正解...</span>正解は「{q["correct"]}」でした。</div>', unsafe_allow_html=True)
         elif st.session_state.judge_status == "time_up":
             st.markdown(f'<div class="time-up-box"><span class="big-icon">⏰ タイムアップ！</span>10秒以内に回答がありませんでした。<br>正解は「{q["correct"]}」でした。</div>', unsafe_allow_html=True)
 
