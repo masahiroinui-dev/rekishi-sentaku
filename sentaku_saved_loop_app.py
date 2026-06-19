@@ -8,7 +8,7 @@ import time
 # ファイル名の定義
 QUIZ_FILE = "sentaku_quiz_data.csv"
 SAVE_FILE = "sentaku_user_data.txt"
-TIME_LIMIT = 10  # 制限時間（秒）
+TIME_LIMIT = 15  # 制限時間（秒）を15秒に設定
 MAX_LIFE = 3     # 最大ライフ数
 
 st.set_page_config(page_title="CHALLENGER - 究極の選択クイズ", layout="centered")
@@ -79,7 +79,7 @@ st.markdown("""
         color: #ffffff !important;
     }
     
-    /* 🚨 【超重要】ボタンのグラフィックを完全ゲーム風に強制上書き 🚨 */
+    /* ボタンのグラフィックを完全ゲーム風に強制上書き */
     div.stButton > button {
         background-color: #11141a !important;   /* ボタンの背景を漆黒に */
         color: #38bdf8 !important;              /* 文字を明るいネオンブルーに */
@@ -88,12 +88,11 @@ st.markdown("""
         font-size: 20px !important;             /* 文字を大きく */
         font-weight: bold !important;
         padding: 10px 24px !important;
-        width: 100% !important;                 /* 押しやすいように横いっぱいに広げる */
+        width: 100% !important;                 /* 横いっぱいに広げる */
         box-shadow: 0 0 10px rgba(56, 189, 248, 0.2) !important;
         transition: all 0.3s ease !important;
     }
     
-    /* ボタンにマウスを乗せたとき（またはスマホでタップしたとき）の演出 */
     div.stButton > button:hover {
         background-color: #38bdf8 !important;   /* 背景がネオンブルーに */
         color: #11141a !important;              /* 文字が漆黒に反転 */
@@ -195,11 +194,13 @@ if "current_combo" not in st.session_state: st.session_state.current_combo = 0
 if "max_combo" not in st.session_state: st.session_state.max_combo = 0
 if "start_time" not in st.session_state: st.session_state.start_time = 0.0
 if "judge_status" not in st.session_state: st.session_state.judge_status = "" 
+if "gained_score" not in st.session_state: st.session_state.gained_score = 0
 
 # 4. 次の問題をセットする関数
 def next_question():
     st.session_state.answered = False
     st.session_state.judge_status = ""
+    st.session_state.gained_score = 0
     
     if st.session_state.life <= 0:
         return
@@ -219,15 +220,14 @@ def next_question():
     }
     st.session_state.start_time = time.time()
 
-# 5. 称号（ランク）を判定するロジック
-def get_rank(score, total, max_combo, life):
-    rate = (score / total) * 100 if total > 0 else 0
-    if rate == 100 and life == MAX_LIFE: return "👑 SSS級: 不死鳥マスター"
-    elif rate == 100: return "🏆 SS級: 完全無欠の覇者"
-    elif rate >= 80: return "🎓 S級: 大賢者"
-    elif rate >= 60: return "⚔️ A級: 上級戦士"
-    elif max_combo >= 3: return "🏹 B級: 連撃の狩人"
-    else: return "🪵 C級: 新米冒険者"
+# 5. 👑 【新ロジック】獲得合計スコアをもとに称号を判定する
+def get_rank(score):
+    if score >= 12000: return "👑 SSS級: 神話の覇者"
+    elif score >= 8000: return "🏆 SS級: 伝説の英雄"
+    elif score >= 5000: return "🎓 S級: 大賢者"
+    elif score >= 3000: return "⚔️ A級: 王宮騎士"
+    elif score >= 1000: return "🏹 B級: 熟練の冒険者"
+    else: return "🪵 C級: 新米の旅人"
 
 # --- ⚙️ 画面描画 ---
 st.markdown('<div class="game-title">⚡ QUIZ CHALLENGER ⚡</div>', unsafe_allow_html=True)
@@ -281,7 +281,7 @@ else:
                 <td style="text-align:right;">❤️ HP: <span class="life-heart">{hearts}</span></td>
             </tr>
             <tr>
-                <td>🎯 SCORE: <b style="color:#ffffff;">{st.session_state.score}</b> P</td>
+                <td>🎯 SCORE: <b style="color:#00ffcc; font-size:22px; text-shadow: 0 0 5px #00ffcc;">{st.session_state.score}</b> P</td>
                 <td style="text-align:right; color:#ff9f43; font-weight:bold;">{combo_flash}</td>
             </tr>
         </table>
@@ -332,7 +332,7 @@ else:
         
         # 演出表示
         if st.session_state.judge_status == "correct":
-            st.markdown(f'<div class="result-box correct-style"><span class="huge-icon">✨ ⭕ CRITICAL HIT! ✨</span>正解は 「{q["correct"]}」 です！コンボ継続中！</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-box correct-style"><span class="huge-icon">✨ ⭕ CRITICAL HIT! ✨</span>正解は 「{q["correct"]}」 です！<br><span style="color:#00ffcc; font-size:22px;"><b>+{st.session_state.gained_score} POINTS GET!!</b></span></div>', unsafe_allow_html=True)
         elif st.session_state.judge_status == "wrong":
             st.markdown(f'<div class="result-box wrong-style"><span class="huge-icon">💥 ❌ DAMAGE! 💥</span>不正解！ 正解は 「{q["correct"]}」 だった！</div>', unsafe_allow_html=True)
         elif st.session_state.judge_status == "time_up":
@@ -346,8 +346,13 @@ else:
                     st.session_state.answered = True
                     if user_choice == q['correct']:
                         st.session_state.judge_status = "correct"
-                        st.session_state.score += 1
                         st.session_state.current_combo += 1
+                        
+                        # 基本10点 + (現在のコンボ数 * 5点)
+                        bonus = st.session_state.current_combo * 5
+                        st.session_state.gained_score = 10 + bonus
+                        st.session_state.score += st.session_state.gained_score
+                        
                         if st.session_state.current_combo > st.session_state.max_combo:
                             st.session_state.max_combo = st.session_state.current_combo
                     else:
@@ -368,7 +373,8 @@ else:
         st.markdown("---")
         st.balloons()
         
-        rank = get_rank(st.session_state.score, total_questions, st.session_state.max_combo, st.session_state.life)
+        # 新しいスコアベースのランク判定
+        rank = get_rank(st.session_state.score)
         
         st.markdown(f"""
         <div style="text-align:center;">
@@ -380,7 +386,7 @@ else:
         </div>
         """, unsafe_allow_html=True)
         
-        st.metric(label="獲得スコア", value=f"{st.session_state.score} / {total_questions} 問正解")
+        st.metric(label="最終獲得スコア", value=f"{st.session_state.score} P")
         
         if st.button("🔄 次の周回（難関）へ進む"):
             st.session_state.history_ids = []
